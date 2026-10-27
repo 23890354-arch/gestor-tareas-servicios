@@ -5,6 +5,8 @@ import 'pantalla_form_tarea.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'dart:io';
+
 class PantallaListaTareas extends StatefulWidget {
   const PantallaListaTareas({super.key});
 
@@ -84,7 +86,6 @@ class _PantallaListaTareasState extends State<PantallaListaTareas> {
               ),
             )
           // 3) Renderización dinámica de la lista.
-
   : ListView.builder(
               itemCount: _listaDeTareas.length,
               itemBuilder: (context, index) {
@@ -98,18 +99,25 @@ class _PantallaListaTareasState extends State<PantallaListaTareas> {
                   margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   elevation: 2,
                   child: ListTile(
-                    // Ícono lateral según el estado de la tarea
-                    leading: CircleAvatar(
-                      backgroundColor: tarea.estaCompletada
-                          ? Colors.green.shade100
-                          : Colors.orange.shade100,
-                      child: Icon(
-                        tarea.estaCompletada
-                            ? Icons.check_circle
-                            : Icons.pending_actions,
-                        color: tarea.estaCompletada ? Colors.green : Colors.orange,
-                      ),
-                    ),
+                    leading: tarea.rutaFoto != null
+                        ? CircleAvatar(
+                            radius: 28,
+                            backgroundImage: FileImage(File(tarea.rutaFoto!)),
+                          )
+                        : CircleAvatar(
+                            backgroundColor: tarea.estaCompletada
+                                ? Colors.green.shade100
+                                : Colors.orange.shade100,
+                            child: Icon(
+                              tarea.estaCompletada
+                                  ? Icons.check_circle
+                                  : Icons.pending_actions,
+                              color: tarea.estaCompletada
+                                  ? Colors.green
+                                  : Colors.orange,
+                            ),
+                          ),
+
                     title: Text(
                       tarea.titulo,
                       style: TextStyle(
