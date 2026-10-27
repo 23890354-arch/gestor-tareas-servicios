@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../modelos/modelo_tarea.dart';
 import 'pantalla_form_tarea.dart';
 
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+
 class PantallaListaTareas extends StatefulWidget {
   const PantallaListaTareas({super.key});
 
@@ -13,25 +16,57 @@ class _PantallaListaTareasState extends State<PantallaListaTareas> {
   // Lista local en memoria que almacenará los objetos Tarea
   final List<Tarea> _listaDeTareas = [];
 
-   // 2) Navegación asíncrona hacia el formulario
+      // Clave con la que se guarda la lista en el almacenamiento local
+    static const String _claveTareas = 'lista_tareas';
 
-  // Inicia nuevo método: Navegación asíncrona hacia el formulario
-  Future<void> _abrirFormulario() async {
-    // Navigator.push envía al usuario a la nueva pantalla y ESPERA un resultado
-    final Tarea? tareaCreada = await Navigator.push<Tarea>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const PantallaFormularioTarea(),
-      ),
-    );
+    @override
+    void initState() {
+      super.initState();
+      _cargarTareas(); // Al abrir la pantalla, recupera las tareas guardadas
+    }
 
-    // Si el usuario guardó la tarea (retornó un objeto no nulo)
-    if (tareaCreada != null) {
+    // Convierte cada Tarea a JSON y guarda la lista completa
+    Future<void> _guardarTareas() async {
+      final prefs = await SharedPreferences.getInstance();
+      final listaJson =
+          _listaDeTareas.map((t) => jsonEncode(t.toMap())).toList();
+      await prefs.setStringList(_claveTareas, listaJson);
+    }
+
+    // Lee la lista guardada y reconstruye los objetos Tarea
+    Future<void> _cargarTareas() async {
+      final prefs = await SharedPreferences.getInstance();
+      final listaJson = prefs.getStringList(_claveTareas) ?? [];
+      if (!mounted) return; // Evita usar setState si la pantalla ya se cerró
       setState(() {
-        _listaDeTareas.add(tareaCreada);
+        _listaDeTareas
+          ..clear()
+          ..addAll(listaJson.map(
+            (texto) => Tarea.fromMap(jsonDecode(texto) as Map<String, dynamic>),
+          ));
       });
     }
-  }
+
+   // 2) Navegación asíncrona hacia el formulario
+
+    // Inicia nuevo método: Navegación asíncrona hacia el formulario
+    Future<void> _abrirFormulario() async {
+      // Navigator.push envía al usuario a la nueva pantalla y ESPERA un resultado
+      final Tarea? tareaCreada = await Navigator.push<Tarea>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PantallaFormularioTarea(),
+        ),
+      );
+
+      // Si el usuario guardó la tarea (retornó un objeto no nulo)
+      if (tareaCreada != null) {
+        setState(() {
+          _listaDeTareas.add(tareaCreada);
+        });
+        await _guardarTareas(); // <-- NUEVO: persiste la lista actualizada
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
