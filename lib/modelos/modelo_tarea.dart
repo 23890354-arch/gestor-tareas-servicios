@@ -4,6 +4,7 @@ class Tarea {
   String prioridad; // 'Alta', 'Media', 'Baja'
   bool estaCompletada;
   DateTime fechaLimite; // Nuevo: control de fecha
+  String? rutaFoto; // Nuevo: ruta de la foto (opcional)
 
 
   Tarea({
@@ -12,8 +13,8 @@ class Tarea {
     this.prioridad = 'Media',
     this.estaCompletada = false,
     required this.fechaLimite, // Nuevo: campo obligatorio
+    this.rutaFoto, // Nuevo: campo opcional
   });
-
     // Convierte el objeto a un Map para poder guardarlo como JSON
   Map<String, dynamic> toMap() {
     return {
@@ -22,6 +23,7 @@ class Tarea {
       'prioridad': prioridad,
       'estaCompletada': estaCompletada,
       'fechaLimite': fechaLimite.toIso8601String(), // DateTime -> texto
+      'rutaFoto': rutaFoto, // NUEVO
     };
   }
 
@@ -33,6 +35,7 @@ class Tarea {
       prioridad: map['prioridad'] as String,
       estaCompletada: map['estaCompletada'] as bool,
       fechaLimite: DateTime.parse(map['fechaLimite'] as String), // texto -> DateTime
+      rutaFoto: map['rutaFoto'] as String?, // NUEVO
     );
   }
 }
