@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import '../modelos/modelo_tarea.dart';
 
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
 class PantallaFormularioTarea extends StatefulWidget {
   const PantallaFormularioTarea({super.key});
 
@@ -23,6 +28,10 @@ class _PantallaFormularioTareaState extends State<PantallaFormularioTarea> {
   bool _estaCompletada = false;
   DateTime _fechaSeleccionada = DateTime.now();
 
+  // NUEVO (Actividad B): ruta de la foto y selector de imágenes
+  String? _rutaFoto;
+  final ImagePicker _picker = ImagePicker();
+
   // Método para abrir el selector de fecha nativo de Android/iOS
 
   Future<void> _seleccionarFecha(BuildContext context) async {
@@ -40,6 +49,56 @@ class _PantallaFormularioTareaState extends State<PantallaFormularioTarea> {
     }
   }
 
+  // NUEVO: abre cámara o galería y guarda una copia permanente de la imagen
+  Future<void> _seleccionarFoto(ImageSource origen) async {
+    final XFile? imagen = await _picker.pickImage(
+      source: origen,
+      maxWidth: 1024,
+      imageQuality: 80,
+    );
+    if (imagen == null) return; // El usuario canceló
+
+    // image_picker deja la foto en una carpeta temporal; la copiamos a una permanente
+    final directorio = await getApplicationDocumentsDirectory();
+    final nombre =
+        '${DateTime.now().millisecondsSinceEpoch}${p.extension(imagen.path)}';
+    final destino = p.join(directorio.path, nombre);
+    await File(imagen.path).copy(destino);
+
+    if (!mounted) return;
+    setState(() {
+      _rutaFoto = destino;
+    });
+  }
+
+  // NUEVO: menú inferior para elegir el origen de la foto
+  void _mostrarOpcionesFoto() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Tomar foto'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _seleccionarFoto(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Elegir de la galería'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _seleccionarFoto(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   // Reemplaza el código de la función _guardarFormulario() por esta versión actualizada:
 
@@ -56,6 +115,7 @@ class _PantallaFormularioTareaState extends State<PantallaFormularioTarea> {
         prioridad: _prioridad,
         estaCompletada: _estaCompletada,      // <-- NUEVO: Valor del SwitchListTile
         fechaLimite: _fechaSeleccionada,     // <-- NUEVO: Valor del DatePicker
+        rutaFoto: _rutaFoto, // <-- NUEVO: ruta de la foto
       );
 
       // 4. Formatea la fecha para mostrarla limpiamente en el mensaje
@@ -189,6 +249,35 @@ class _PantallaFormularioTareaState extends State<PantallaFormularioTarea> {
               ),
               const SizedBox(height: 24),
           
+              // CONTROL 3 (NUEVO): Foto con cámara o galería
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      if (_rutaFoto != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            File(_rutaFoto!),
+                            height: 180,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      OutlinedButton.icon(
+                        onPressed: _mostrarOpcionesFoto,
+                        icon: const Icon(Icons.add_a_photo),
+                        label: Text(
+                            _rutaFoto == null ? 'Agregar foto' : 'Cambiar foto'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
 
               // Botón Guardar
               ElevatedButton.icon(
